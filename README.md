@@ -60,7 +60,11 @@ Grab the latest `.dmg` from [Releases](https://github.com/hjmolla/ccquick/releas
 
 1. Open the DMG
 2. Drag **CCQuick** to **Applications**
-3. Right-click → Open (first launch only, since the app is unsigned)
+3. Run this in Terminal (one-time, removes Gatekeeper quarantine):
+   ```bash
+   xattr -cr /Applications/CCQuick.app
+   ```
+4. Open CCQuick from Applications
 
 ### Build from source
 
