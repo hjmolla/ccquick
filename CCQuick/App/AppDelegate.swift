@@ -32,6 +32,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unche
                 self?.showOnboarding()
             }
         }
+
+        // Check for updates silently
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+            UpdateChecker.shared.checkForUpdates(silent: true)
+        }
     }
 
     private var splashWindow: NSWindow?
@@ -278,6 +283,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unche
         settingsItem.image = NSImage(systemSymbolName: "gearshape", accessibilityDescription: nil)
         menu.addItem(settingsItem)
 
+        let updateItem = NSMenuItem(title: "Check for Updates...", action: #selector(checkForUpdates), keyEquivalent: "")
+        updateItem.image = NSImage(systemSymbolName: "arrow.down.circle", accessibilityDescription: nil)
+        menu.addItem(updateItem)
+
         let replayItem = NSMenuItem(title: "Replay Onboarding", action: #selector(replayOnboarding), keyEquivalent: "")
         replayItem.image = NSImage(systemSymbolName: "play.circle", accessibilityDescription: nil)
         menu.addItem(replayItem)
@@ -360,6 +369,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unche
     func menuWillOpen(_ menu: NSMenu) {
         sessionTracker.scan()
         rebuildMenu()
+    }
+
+    @objc private func checkForUpdates() {
+        UpdateChecker.shared.checkForUpdates(silent: false)
     }
 
     @objc private func replayOnboarding() {
