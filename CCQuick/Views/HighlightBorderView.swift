@@ -15,7 +15,7 @@ final class HighlightBorderView: NSView {
 
     private func setupLayers() {
         layer?.sublayers?.forEach { $0.removeFromSuperlayer() }
-        layer?.cornerRadius = 10
+        layer?.cornerRadius = 14
         layer?.masksToBounds = true
 
         let rect = bounds

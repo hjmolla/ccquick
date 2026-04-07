@@ -7,8 +7,10 @@ struct DirectoryRowView: View {
     let isSelected: Bool
     var onTogglePin: (() -> Void)? = nil
     var onChangeIcon: (() -> Void)? = nil
+    var onLaunchWith: ((LaunchTarget) -> Void)? = nil
     @State private var isHovered: Bool = false
     @State private var iconHovered: Bool = false
+    @State private var showLaunchMenu: Bool = false
 
     var body: some View {
         HStack(spacing: 12) {
@@ -69,6 +71,31 @@ struct DirectoryRowView: View {
                 Text(relativeDate(date))
                     .font(.system(size: 10, design: .rounded))
                     .foregroundColor(isSelected ? .white.opacity(0.6) : .secondary)
+            }
+
+            // Open with dropdown — appears on hover
+            if isHovered || isSelected {
+                Menu {
+                    let installed = LaunchTarget.installed
+                    ForEach(installed) { target in
+                        Button(action: { onLaunchWith?(target) }) {
+                            Label(target.rawValue, systemImage: target.icon)
+                        }
+                    }
+                } label: {
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundColor(isSelected ? .white.opacity(0.7) : .secondary)
+                        .frame(width: 22, height: 22)
+                        .background(
+                            Circle()
+                                .fill(Color.primary.opacity(isHovered && !isSelected ? 0.04 : 0))
+                        )
+                }
+                .menuStyle(.borderlessButton)
+                .menuIndicator(.hidden)
+                .frame(width: 22)
+                .transition(.opacity.combined(with: .scale(scale: 0.8)))
             }
 
             // Pin — appears on hover or if pinned

@@ -1,28 +1,66 @@
 import Foundation
 import Cocoa
 
+enum LaunchTarget: String, CaseIterable, Identifiable {
+    case terminal = "Terminal"
+    case iterm2 = "iTerm2"
+
+    var id: String { rawValue }
+
+    var icon: String {
+        switch self {
+        case .terminal: return "terminal"
+        case .iterm2: return "rectangle.topthird.inset.filled"
+        }
+    }
+
+    var isInstalled: Bool {
+        switch self {
+        case .terminal: return true
+        case .iterm2:
+            let home = FileManager.default.homeDirectoryForCurrentUser.path
+            return FileManager.default.fileExists(atPath: "/Applications/iTerm.app") ||
+                   FileManager.default.fileExists(atPath: home + "/Applications/iTerm.app")
+        }
+    }
+
+    static var installed: [LaunchTarget] {
+        allCases.filter(\.isInstalled)
+    }
+}
+
 final class TerminalLaunchService: @unchecked Sendable {
     static let shared = TerminalLaunchService()
     private init() {}
 
+    /// Launch with default terminal from Preferences
     func launchClaude(in directory: String) {
-        let prefs = Preferences.shared
+        let target: LaunchTarget
+        switch Preferences.shared.terminalType {
+        case .terminal: target = .terminal
+        case .iterm2: target = .iterm2
+        case .warp: target = .terminal // fallback to Terminal
+        }
+        launchClaude(in: directory, with: target)
+    }
+
+    /// Launch with a specific target
+    func launchClaude(in directory: String, with target: LaunchTarget) {
         let escapedPath = directory
             .replacingOccurrences(of: "\\", with: "\\\\")
             .replacingOccurrences(of: "\"", with: "\\\"")
-        let claudePath = prefs.claudePath
+        let claudePath = Preferences.shared.claudePath
 
-        let scriptSource: String
-        switch prefs.terminalType {
+        switch target {
         case .terminal:
-            scriptSource = """
+            runAppleScript("""
             tell application "Terminal"
                 do script "cd \\"\(escapedPath)\\" && \(claudePath)"
                 activate
             end tell
-            """
+            """)
         case .iterm2:
-            scriptSource = """
+            runAppleScript("""
             tell application "iTerm"
                 activate
                 set newWindow to (create window with default profile)
@@ -30,30 +68,28 @@ final class TerminalLaunchService: @unchecked Sendable {
                     write text "cd \\"\(escapedPath)\\" && \(claudePath)"
                 end tell
             end tell
-            """
-        case .warp:
-            scriptSource = """
-            tell application "Warp" to activate
-            delay 0.5
-            tell application "System Events"
-                tell process "Warp"
-                    set frontmost to true
-                    delay 0.3
-                    keystroke "cd \\"\(escapedPath)\\" && \(claudePath)"
-                    key code 36
-                end tell
-            end tell
-            """
+            """)
         }
+    }
 
+    private func runAppleScript(_ source: String) {
         DispatchQueue.global(qos: .userInitiated).async {
             var error: NSDictionary?
-            if let appleScript = NSAppleScript(source: scriptSource) {
-                appleScript.executeAndReturnError(&error)
+            if let script = NSAppleScript(source: source) {
+                script.executeAndReturnError(&error)
                 if let error = error {
                     print("[CCQuick] AppleScript error: \(error)")
                 }
             }
+        }
+    }
+
+    private func runShell(_ command: String) {
+        DispatchQueue.global(qos: .userInitiated).async {
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/bin/sh")
+            process.arguments = ["-c", command]
+            try? process.run()
         }
     }
 }
