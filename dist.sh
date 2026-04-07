@@ -21,13 +21,64 @@ if [ ! -d "$APP_BUNDLE" ]; then
     exit 1
 fi
 
-# Step 2: Stage
+# Step 2: Create background image
 echo ""
 echo "=== Creating DMG ==="
+BG_IMG="$BUILD_DIR/dmg_bg.png"
+python3 << 'BGEOF'
+import zlib, struct
+
+W, H = 1080, 660  # @2x for 540x330 window
+
+def write_png(w, h, pixels, path):
+    def chunk(t, d):
+        c = t + d
+        return struct.pack('>I', len(d)) + c + struct.pack('>I', zlib.crc32(c) & 0xffffffff)
+    raw = b''
+    for y in range(h):
+        raw += b'\x00'
+        for x in range(w):
+            raw += bytes(pixels[y * w + x])
+    with open(path, 'wb') as f:
+        f.write(b'\x89PNG\r\n\x1a\n')
+        f.write(chunk(b'IHDR', struct.pack('>IIBBBBB', w, h, 8, 6, 0, 0, 0)))
+        f.write(chunk(b'IDAT', zlib.compress(raw, 9)))
+        f.write(chunk(b'IEND', b''))
+
+px = []
+for y in range(H):
+    for x in range(W):
+        ny = y / H
+        # Dark gradient
+        r = int(30 + ny * 10)
+        g = int(30 + ny * 10)
+        b = int(33 + ny * 10)
+
+        # Center arrow pointing right
+        cx, cy = W // 2, H // 2
+        dx, dy = x - cx, y - cy
+        ar, ag, ab = 140, 140, 150  # arrow color
+        # Arrow body
+        if -80 <= dx <= 40 and -6 <= dy <= 6:
+            r, g, b = ar, ag, ab
+        # Arrow head (triangle)
+        if 20 <= dx <= 90:
+            hh = int((90 - dx) * 0.7)
+            if -hh <= dy <= hh:
+                r, g, b = ar, ag, ab
+
+        px.append((r, g, b, 255))
+
+write_png(W, H, px, "build/dmg_bg.png")
+BGEOF
+
+# Stage
 rm -rf "$DMG_DIR" "$DMG_PATH" "$TEMP_DMG"
-mkdir -p "$DMG_DIR"
+mkdir -p "$DMG_DIR/.background"
 cp -R "$APP_BUNDLE" "$DMG_DIR/"
 ln -s /Applications "$DMG_DIR/Applications"
+cp "$BG_IMG" "$DMG_DIR/.background/bg.png"
+rm -f "$BG_IMG"
 
 # Step 3: Create writable DMG
 hdiutil create \
@@ -60,6 +111,7 @@ tell application \"Finder\"
         set theViewOptions to the icon view options of container window
         set arrangement of theViewOptions to not arranged
         set icon size of theViewOptions to 100
+        set background picture of theViewOptions to file \".background:bg.png\"
         set position of item \"$APP_NAME.app\" of container window to {135, 155}
         set position of item \"Applications\" of container window to {405, 155}
         close

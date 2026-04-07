@@ -67,6 +67,12 @@ final class LauncherViewModel: ObservableObject, @unchecked Sendable {
         terminalService.launchClaude(in: project.path)
     }
 
+    func openProject(_ project: Project, with target: LaunchTarget) {
+        store.recordOpen(path: project.path)
+        onDismiss?()
+        terminalService.launchClaude(in: project.path, with: target)
+    }
+
     func openProjectAtSelectedIndex() {
         let projects = allFilteredProjects
         guard !projects.isEmpty, selectedIndex >= 0, selectedIndex < projects.count else { return }

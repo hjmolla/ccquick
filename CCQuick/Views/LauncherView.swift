@@ -93,7 +93,8 @@ struct LauncherView: View {
                                         project: project,
                                         isSelected: idx == viewModel.selectedIndex,
                                         onTogglePin: { viewModel.togglePin(project) },
-                                        onChangeIcon: { viewModel.showIconPicker(for: project) }
+                                        onChangeIcon: { viewModel.showIconPicker(for: project) },
+                                        onLaunchWith: { target in viewModel.openProject(project, with: target) }
                                     )
                                     .id(idx)
                                     .onTapGesture {
