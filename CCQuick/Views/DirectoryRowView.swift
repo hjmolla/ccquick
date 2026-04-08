@@ -10,6 +10,7 @@ struct DirectoryRowView: View {
     var onLaunchWith: ((LaunchTarget) -> Void)? = nil
     @State private var isHovered: Bool = false
     @State private var iconHovered: Bool = false
+    @State private var conversationSummary: ConversationSummary? = nil
     @State private var showLaunchMenu: Bool = false
 
     var body: some View {
@@ -17,14 +18,14 @@ struct DirectoryRowView: View {
             // Project icon pill — click to change icon
             Button(action: { onChangeIcon?() }) {
                 ZStack {
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
                         .fill(
                             isSelected
                                 ? Color.white.opacity(iconHovered ? 0.25 : 0.15)
                                 : Color.primary.opacity(iconHovered ? 0.12 : (isHovered ? 0.08 : 0.04))
                         )
                         .overlay(
-                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
                                 .strokeBorder(
                                     isSelected
                                         ? Color.white.opacity(iconHovered ? 0.35 : 0.2)
@@ -55,14 +56,23 @@ struct DirectoryRowView: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(project.name)
-                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                    .font(.system(size: 13, weight: .regular, design: .serif))
                     .foregroundColor(isSelected ? .primary : .primary)
                     .lineLimit(1)
 
-                Text(abbreviatedPath(project.path))
-                    .font(.system(size: 10.5, design: .monospaced))
-                    .foregroundColor(isSelected ? .secondary.opacity(0.7) : .secondary)
-                    .lineLimit(1)
+                if let summary = conversationSummary, isHovered || isSelected {
+                    Text("\"\(summary.lastMessage)\"")
+                        .font(.system(size: 10, design: .rounded))
+                        .foregroundColor(.secondary.opacity(0.6))
+                        .lineLimit(1)
+                        .italic()
+                        .transition(.opacity)
+                } else {
+                    Text(abbreviatedPath(project.path))
+                        .font(.system(size: 10.5, design: .monospaced))
+                        .foregroundColor(isSelected ? .secondary.opacity(0.7) : .secondary)
+                        .lineLimit(1)
+                }
             }
 
             Spacer()
@@ -123,14 +133,14 @@ struct DirectoryRowView: View {
             ZStack {
                 if isSelected {
                     // Glass card
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
                         .fill(.regularMaterial)
                         .shadow(color: Color.black.opacity(0.08), radius: 4, y: 1)
                 } else if isHovered {
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
                         .fill(Color.primary.opacity(0.05))
                         .overlay(
-                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
                                 .strokeBorder(Color.primary.opacity(0.06), lineWidth: 0.5)
                         )
                 }
@@ -140,6 +150,14 @@ struct DirectoryRowView: View {
         .onHover { hovering in
             withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
                 isHovered = hovering
+            }
+        }
+        .onAppear {
+            DispatchQueue.global(qos: .utility).async {
+                let summary = ConversationHistoryService.shared.getSummary(for: project.path)
+                DispatchQueue.main.async {
+                    conversationSummary = summary
+                }
             }
         }
     }

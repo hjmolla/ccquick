@@ -135,6 +135,36 @@ final class LauncherViewModel: ObservableObject, @unchecked Sendable {
         }
     }
 
+    var isClaudeInstalled: Bool {
+        ClaudeInstallService.shared.isInstalled
+    }
+
+    func createNewProject() {
+        onDismiss?()
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+            let panel = NSSavePanel()
+            panel.title = "Create New Project"
+            panel.prompt = "Create"
+            panel.nameFieldLabel = "Project Name:"
+            panel.nameFieldStringValue = "my-project"
+            panel.canCreateDirectories = true
+
+            let response = panel.runModal()
+            if response == .OK, let url = panel.url {
+                // Create the directory
+                try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+                let path = url.path
+                self?.store.recordOpen(path: path)
+                self?.terminalService.launchClaude(in: path)
+            }
+        }
+    }
+
+    func installClaude() {
+        ClaudeInstallService.shared.installViaBrew()
+    }
+
     func scanForRepos() {
         isScanning = true
         discoveryService.discover { [weak self] paths in

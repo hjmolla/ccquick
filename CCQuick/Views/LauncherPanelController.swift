@@ -25,12 +25,7 @@ final class LauncherPanel: NSPanel {
             contentView.wantsLayer = true
             contentView.layer?.cornerRadius = 16
             contentView.layer?.masksToBounds = true
-            // Subtle outer glow
-            contentView.shadow = NSShadow()
-            contentView.layer?.shadowColor = NSColor.controlAccentColor.withAlphaComponent(0.08).cgColor
-            contentView.layer?.shadowOffset = CGSize(width: 0, height: -2)
-            contentView.layer?.shadowRadius = 20
-            contentView.layer?.shadowOpacity = 1
+            contentView.layer?.borderWidth = 0
         }
     }
 
@@ -279,6 +274,9 @@ final class LauncherPanelController: @unchecked Sendable {
             switch event.keyCode {
             case 53: // Escape
                 self.hidePanel()
+                return nil
+            case 36, 76: // Enter / Return
+                self.viewModel.openProjectAtSelectedIndex()
                 return nil
             case 126: // Up
                 self.viewModel.moveSelectionUp()
