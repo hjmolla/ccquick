@@ -6,10 +6,58 @@ struct SessionRowView: View {
     let session: ClaudeSession
     var sessionIndex: Int = 1   // 1-based, shows "#2" etc when > 1
     var totalForProject: Int = 1
+    var isSelected: Bool = false
+    var onTerminate: (() -> Void)? = nil
     @State private var isHovered: Bool = false
     @State private var isPulsing: Bool = false
+    @State private var showTerminateConfirm: Bool = false
+    @State private var xHovered: Bool = false
 
     var body: some View {
+        if showTerminateConfirm {
+            // Inline confirmation row
+            HStack(spacing: 10) {
+                Text("End \(session.projectName)?")
+                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                    .lineLimit(1)
+
+                Spacer()
+
+                Button("Cancel") {
+                    withAnimation(.easeOut(duration: 0.15)) {
+                        showTerminateConfirm = false
+                    }
+                }
+                .buttonStyle(.borderless)
+                .font(.system(size: 12, design: .rounded))
+                .foregroundColor(.secondary)
+
+                Button(action: {
+                    showTerminateConfirm = false
+                    onTerminate?()
+                }) {
+                    Text("End")
+                        .font(.system(size: 12, weight: .medium, design: .rounded))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 4)
+                        .background(Capsule().fill(Color.red))
+                }
+                .buttonStyle(.borderless)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 12)
+            .background(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(Color.red.opacity(0.06))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .strokeBorder(Color.red.opacity(0.15), lineWidth: 0.5)
+                    )
+            )
+            .transition(.opacity)
+        } else {
+
         HStack(spacing: 12) {
             // Pulsing live indicator
             ZStack {
@@ -72,30 +120,47 @@ struct SessionRowView: View {
 
             Spacer()
 
-            // Duration + switch hint
-            VStack(alignment: .trailing, spacing: 2) {
-                Text(session.duration)
-                    .font(.system(size: 11, weight: .medium, design: .rounded))
-                    .foregroundColor(.secondary)
+            // Duration
+            Text(session.duration)
+                .font(.system(size: 11, weight: .medium, design: .rounded))
+                .foregroundColor(.secondary)
 
-                if isHovered {
-                    Text("Click to switch")
-                        .font(.system(size: 9, design: .rounded))
-                        .foregroundColor(.secondary.opacity(0.6))
-                        .transition(.opacity.combined(with: .move(edge: .trailing)))
+            // Terminate button — appears on hover
+            if isHovered || isSelected {
+                Button(action: { showTerminateConfirm = true }) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundColor(xHovered ? .red : .secondary.opacity(0.6))
+                        .frame(width: 20, height: 20)
+                        .background(
+                            Circle()
+                                .fill(xHovered ? Color.red.opacity(0.1) : Color.primary.opacity(0.06))
+                        )
                 }
+                .buttonStyle(.borderless)
+                .onHover { h in
+                    withAnimation(.easeInOut(duration: 0.12)) { xHovered = h }
+                }
+                .transition(.opacity.combined(with: .scale(scale: 0.8)))
             }
-            .animation(.easeInOut(duration: 0.15), value: isHovered)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(isHovered ? Color.green.opacity(0.04) : Color.clear)
-                .overlay(
+            ZStack {
+                if isSelected {
                     RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .strokeBorder(isHovered ? Color.green.opacity(0.1) : Color.clear, lineWidth: 0.5)
-                )
+                        .fill(.regularMaterial)
+                        .shadow(color: Color.black.opacity(0.08), radius: 4, y: 1)
+                } else {
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(isHovered ? Color.green.opacity(0.04) : Color.clear)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .strokeBorder(isHovered ? Color.green.opacity(0.1) : Color.clear, lineWidth: 0.5)
+                        )
+                }
+            }
         )
         .contentShape(Rectangle())
         .onHover { hovering in
@@ -108,6 +173,8 @@ struct SessionRowView: View {
                 isPulsing = true
             }
         }
+
+        } // end else (not confirming)
     }
 
     private func abbreviatedPath(_ path: String) -> String {
@@ -118,3 +185,4 @@ struct SessionRowView: View {
         return path
     }
 }
+

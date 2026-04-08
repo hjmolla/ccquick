@@ -4,14 +4,14 @@ import CoreText
 private let claudeRed = Color(red: 0.89, green: 0.27, blue: 0.15)
 
 struct SplashView: View {
-    @State private var bgOpacity: Double = 0
     @State private var ccqOpacity: Double = 0
     @State private var expanded: Bool = false
     @State private var fontReady: Bool = false
 
     var body: some View {
         ZStack {
-            Color.black.opacity(bgOpacity)
+            // Transparent — blur is handled by the window's NSVisualEffectView
+            Color.clear
 
             if fontReady {
                 HStack(spacing: expanded ? 10 : 0) {
@@ -26,10 +26,6 @@ struct SplashView: View {
         .onAppear {
             registerFont()
             fontReady = true
-
-            withAnimation(.easeOut(duration: 0.5)) {
-                bgOpacity = 0.8
-            }
 
             withAnimation(.easeOut(duration: 0.5).delay(0.2)) {
                 ccqOpacity = 1

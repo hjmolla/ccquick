@@ -36,13 +36,13 @@ struct DirectoryRowView: View {
 
                     ZStack {
                         Image(systemName: project.displayIcon)
-                            .foregroundColor(isSelected ? .white : .primary.opacity(0.7))
+                            .foregroundColor(isSelected ? .primary : .primary.opacity(0.7))
                             .font(.system(size: 14, weight: .medium))
                             .opacity(iconHovered ? 0.3 : 1)
 
                         if iconHovered {
                             Image(systemName: "pencil")
-                                .foregroundColor(isSelected ? .white : .primary.opacity(0.8))
+                                .foregroundColor(isSelected ? .primary : .primary.opacity(0.8))
                                 .font(.system(size: 12, weight: .semibold))
                                 .transition(.scale(scale: 0.5).combined(with: .opacity))
                         }
@@ -56,12 +56,12 @@ struct DirectoryRowView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(project.name)
                     .font(.system(size: 13, weight: .medium, design: .rounded))
-                    .foregroundColor(isSelected ? .white : .primary)
+                    .foregroundColor(isSelected ? .primary : .primary)
                     .lineLimit(1)
 
                 Text(abbreviatedPath(project.path))
                     .font(.system(size: 10.5, design: .monospaced))
-                    .foregroundColor(isSelected ? .white.opacity(0.7) : .secondary)
+                    .foregroundColor(isSelected ? .secondary.opacity(0.7) : .secondary)
                     .lineLimit(1)
             }
 
@@ -70,7 +70,7 @@ struct DirectoryRowView: View {
             if let date = project.lastOpened {
                 Text(relativeDate(date))
                     .font(.system(size: 10, design: .rounded))
-                    .foregroundColor(isSelected ? .white.opacity(0.6) : .secondary)
+                    .foregroundColor(isSelected ? .secondary.opacity(0.6) : .secondary)
             }
 
             // Open with dropdown — appears on hover
@@ -85,7 +85,7 @@ struct DirectoryRowView: View {
                 } label: {
                     Image(systemName: "chevron.down")
                         .font(.system(size: 9, weight: .semibold))
-                        .foregroundColor(isSelected ? .white.opacity(0.7) : .secondary)
+                        .foregroundColor(isSelected ? .secondary.opacity(0.7) : .secondary)
                         .frame(width: 22, height: 22)
                         .background(
                             Circle()
@@ -104,7 +104,7 @@ struct DirectoryRowView: View {
                     Image(systemName: project.isPinned ? "pin.fill" : "pin")
                         .font(.system(size: 10, weight: .medium))
                         .foregroundColor(
-                            isSelected ? .white.opacity(0.8)
+                            isSelected ? .secondary.opacity(0.8)
                             : (project.isPinned ? claudeTerracotta : .secondary)
                         )
                         .frame(width: 22, height: 22)
@@ -122,9 +122,10 @@ struct DirectoryRowView: View {
         .background(
             ZStack {
                 if isSelected {
+                    // Glass card
                     RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(Color.primary.opacity(0.85))
-                        .shadow(color: Color.black.opacity(0.2), radius: 8, y: 2)
+                        .fill(.regularMaterial)
+                        .shadow(color: Color.black.opacity(0.08), radius: 4, y: 1)
                 } else if isHovered {
                     RoundedRectangle(cornerRadius: 10, style: .continuous)
                         .fill(Color.primary.opacity(0.05))

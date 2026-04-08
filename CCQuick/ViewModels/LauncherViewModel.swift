@@ -73,10 +73,25 @@ final class LauncherViewModel: ObservableObject, @unchecked Sendable {
         terminalService.launchClaude(in: project.path, with: target)
     }
 
+    var totalItemCount: Int {
+        let sessionCount = searchText.isEmpty ? sessionTracker.sessions.count : 0
+        return sessionCount + allFilteredProjects.count
+    }
+
+    var projectStartIndex: Int {
+        searchText.isEmpty ? sessionTracker.sessions.count : 0
+    }
+
     func openProjectAtSelectedIndex() {
+        let sessions = searchText.isEmpty ? sessionTracker.sessions : []
+        if selectedIndex < sessions.count {
+            focusSession(sessions[selectedIndex])
+            return
+        }
+        let projectIdx = selectedIndex - sessions.count
         let projects = allFilteredProjects
-        guard !projects.isEmpty, selectedIndex >= 0, selectedIndex < projects.count else { return }
-        openProject(projects[selectedIndex])
+        guard !projects.isEmpty, projectIdx >= 0, projectIdx < projects.count else { return }
+        openProject(projects[projectIdx])
     }
 
     func togglePin(_ project: Project) {
@@ -94,6 +109,10 @@ final class LauncherViewModel: ObservableObject, @unchecked Sendable {
     func focusSession(_ session: ClaudeSession) {
         onDismiss?()
         sessionTracker.focusSession(session)
+    }
+
+    func terminateSession(_ session: ClaudeSession) {
+        sessionTracker.terminateSession(session)
     }
 
     func browseForDirectory() {
@@ -129,8 +148,7 @@ final class LauncherViewModel: ObservableObject, @unchecked Sendable {
     }
 
     func moveSelectionDown() {
-        let count = allFilteredProjects.count
-        if selectedIndex < count - 1 { selectedIndex += 1 }
+        if selectedIndex < totalItemCount - 1 { selectedIndex += 1 }
     }
 
     func resetSelection() {
