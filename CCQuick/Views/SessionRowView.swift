@@ -48,10 +48,10 @@ struct SessionRowView: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 12)
             .background(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .fill(Color.red.opacity(0.06))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
                             .strokeBorder(Color.red.opacity(0.15), lineWidth: 0.5)
                     )
             )
@@ -63,27 +63,25 @@ struct SessionRowView: View {
             ZStack {
                 // Pulse ring
                 Circle()
-                    .stroke(Color.green.opacity(isPulsing ? 0 : 0.3), lineWidth: 1.5)
+                    .stroke(claudeTerracotta.opacity(isPulsing ? 0 : 0.3), lineWidth: 1.5)
                     .frame(width: 32, height: 32)
                     .scaleEffect(isPulsing ? 1.4 : 1.0)
 
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(Color.green.opacity(isHovered ? 0.15 : 0.08))
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(claudeTerracotta.opacity(isHovered ? 0.15 : 0.08))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .strokeBorder(Color.green.opacity(0.2), lineWidth: 0.5)
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .strokeBorder(claudeTerracotta.opacity(0.2), lineWidth: 0.5)
                     )
                     .frame(width: 32, height: 32)
 
-                Image(systemName: "bolt.fill")
-                    .foregroundColor(.green)
-                    .font(.system(size: 13, weight: .medium))
+                ClaudeLogoView(size: 20, seed: Int(session.id))
             }
 
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
                     Text(session.projectName)
-                        .font(.system(size: 13, weight: .medium, design: .rounded))
+                        .font(.system(size: 13, weight: .regular, design: .serif))
                         .foregroundColor(.primary)
                         .lineLimit(1)
 
@@ -103,12 +101,12 @@ struct SessionRowView: View {
                     // Live pill
                     Text("LIVE")
                         .font(.system(size: 8, weight: .bold, design: .rounded))
-                        .foregroundColor(.green)
+                        .foregroundColor(claudeTerracotta)
                         .padding(.horizontal, 5)
                         .padding(.vertical, 1.5)
                         .background(
                             Capsule()
-                                .fill(Color.green.opacity(0.12))
+                                .fill(claudeTerracotta.opacity(0.12))
                         )
                 }
 
@@ -149,15 +147,15 @@ struct SessionRowView: View {
         .background(
             ZStack {
                 if isSelected {
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
                         .fill(.regularMaterial)
                         .shadow(color: Color.black.opacity(0.08), radius: 4, y: 1)
                 } else {
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(isHovered ? Color.green.opacity(0.04) : Color.clear)
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(isHovered ? claudeTerracotta.opacity(0.04) : Color.clear)
                         .overlay(
-                            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .strokeBorder(isHovered ? Color.green.opacity(0.1) : Color.clear, lineWidth: 0.5)
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .strokeBorder(isHovered ? claudeTerracotta.opacity(0.1) : Color.clear, lineWidth: 0.5)
                         )
                 }
             }
@@ -183,6 +181,49 @@ struct SessionRowView: View {
             return "~" + path.dropFirst(home.count)
         }
         return path
+    }
+}
+
+struct ClaudeLogoView: View {
+    let size: CGFloat
+    var seed: Int = 0  // different seed = different timing
+    @State private var floatOffset: CGFloat = 0
+    @State private var tilt: Double = 0
+
+    private var floatDuration: Double {
+        1.6 + Double(seed % 5) * 0.3
+    }
+    private var tiltDuration: Double {
+        2.2 + Double((seed + 2) % 5) * 0.35
+    }
+    private var startDelay: Double {
+        Double(seed % 4) * 0.4
+    }
+
+    var body: some View {
+        Group {
+            if let path = Bundle.main.path(forResource: "ClaudeCodeLogo", ofType: "png"),
+               let nsImage = NSImage(contentsOfFile: path) {
+                Image(nsImage: nsImage)
+                    .interpolation(.high)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: size, height: size)
+                    .drawingGroup()
+                    .offset(y: floatOffset)
+                    .rotationEffect(.degrees(tilt))
+            }
+        }
+        .onAppear {
+            DispatchQueue.main.asyncAfter(deadline: .now() + startDelay) {
+                withAnimation(.easeInOut(duration: floatDuration).repeatForever(autoreverses: true)) {
+                    floatOffset = -2
+                }
+                withAnimation(.easeInOut(duration: tiltDuration).repeatForever(autoreverses: true)) {
+                    tilt = 3
+                }
+            }
+        }
     }
 }
 

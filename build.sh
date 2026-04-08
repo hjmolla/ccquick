@@ -63,6 +63,7 @@ mkdir -p "$RESOURCES"
 cp icon/ccquick_logo.png "$RESOURCES/AppIcon.png"
 cp icon/ccquick_logo_transparent.png "$RESOURCES/MenuBarIcon.png"
 cp icon/DMSerifDisplay-Italic.ttf "$RESOURCES/DMSerifDisplay-Italic.ttf"
+cp "icon/Claude Code Logo.png" "$RESOURCES/ClaudeCodeLogo.png"
 
 # Generate .icns app icon
 ICONSET="$BUILD_DIR/AppIcon.iconset"

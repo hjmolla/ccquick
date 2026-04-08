@@ -13,6 +13,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unche
     private var sessionObserver: Any?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        registerCustomFonts()
         setupStatusItem()
         setupLauncherPanel()
         setupHotkey()
@@ -200,6 +201,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unche
         }
     }
 
+    private func registerCustomFonts() {
+        guard let fontPath = Bundle.main.path(forResource: "DMSerifDisplay-Italic", ofType: "ttf"),
+              let fontData = NSData(contentsOfFile: fontPath),
+              let provider = CGDataProvider(data: fontData),
+              let cgFont = CGFont(provider) else { return }
+        var error: Unmanaged<CFError>?
+        CTFontManagerRegisterGraphicsFont(cgFont, &error)
+    }
+
     private func setupStatusItem() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
 
@@ -258,7 +268,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unche
             ])
             headerAttr.append(NSAttributedString(string: "\(sessions.count)", attributes: [
                 .font: NSFont.monospacedSystemFont(ofSize: 10, weight: .medium),
-                .foregroundColor: NSColor.systemGreen
+                .foregroundColor: NSColor(red: 0.85, green: 0.47, blue: 0.34, alpha: 1.0)
             ]))
             headerItem.attributedTitle = headerAttr
             menu.addItem(headerItem)
