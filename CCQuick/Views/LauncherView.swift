@@ -65,15 +65,19 @@ struct LauncherView: View {
                             if !activeSessions.isEmpty && viewModel.searchText.isEmpty {
                                 sectionHeader("Active Sessions", count: activeSessions.count, isFirst: true)
 
-                                ForEach(activeSessions) { session in
+                                ForEach(Array(activeSessions.enumerated()), id: \.element.id) { sessionIdx, session in
                                     let sessionsForDir = activeSessions.filter { $0.directory == session.directory }
-                                    let idx = sessionsForDir.firstIndex(where: { $0.id == session.id }).map { $0 + 1 } ?? 1
+                                    let dirIdx = sessionsForDir.firstIndex(where: { $0.id == session.id }).map { $0 + 1 } ?? 1
                                     SessionRowView(
                                         session: session,
-                                        sessionIndex: idx,
-                                        totalForProject: sessionsForDir.count
+                                        sessionIndex: dirIdx,
+                                        totalForProject: sessionsForDir.count,
+                                        isSelected: sessionIdx == viewModel.selectedIndex,
+                                        onTerminate: { viewModel.terminateSession(session) }
                                     )
+                                    .id("s\(sessionIdx)")
                                     .onTapGesture {
+                                        viewModel.selectedIndex = sessionIdx
                                         viewModel.focusSession(session)
                                     }
                                 }
@@ -88,16 +92,18 @@ struct LauncherView: View {
                                 )
 
                                 ForEach(section.projects) { project in
-                                    let idx = allProjects.firstIndex(where: { $0.id == project.id }) ?? 0
+                                    let projectIdx = allProjects.firstIndex(where: { $0.id == project.id }) ?? 0
+                                    let globalIdx = viewModel.projectStartIndex + projectIdx
                                     DirectoryRowView(
                                         project: project,
-                                        isSelected: idx == viewModel.selectedIndex,
+                                        isSelected: globalIdx == viewModel.selectedIndex,
                                         onTogglePin: { viewModel.togglePin(project) },
                                         onChangeIcon: { viewModel.showIconPicker(for: project) },
                                         onLaunchWith: { target in viewModel.openProject(project, with: target) }
                                     )
-                                    .id(idx)
+                                    .id("p\(globalIdx)")
                                     .onTapGesture {
+                                        viewModel.selectedIndex = globalIdx
                                         viewModel.openProject(project)
                                     }
                                 }
@@ -107,9 +113,9 @@ struct LauncherView: View {
                         .padding(.vertical, 4)
                     }
                     .onChange(of: viewModel.selectedIndex) { newIndex in
-                        withAnimation(.easeOut(duration: 0.12)) {
-                            proxy.scrollTo(newIndex, anchor: .center)
-                        }
+                        let sessions = viewModel.searchText.isEmpty ? viewModel.sessionTracker.sessions : []
+                        let scrollId: String = newIndex < sessions.count ? "s\(newIndex)" : "p\(newIndex)"
+                        proxy.scrollTo(scrollId, anchor: .center)
                     }
                 }
             }
@@ -321,43 +327,80 @@ struct LauncherView: View {
 // MARK: - Glass Background
 
 struct GlassBackground: View {
-    // Claude brand colors
     static let claudeTerracotta = Color(red: 0.85, green: 0.47, blue: 0.34)
     static let claudeSand = Color(red: 0.96, green: 0.93, blue: 0.88)
     static let claudeCream = Color(red: 0.99, green: 0.97, blue: 0.94)
 
     var body: some View {
         ZStack {
-            // Deep blur layer — refractive glass
+            // Base frosted glass
             GlassBlurView()
 
-            // Warm Claude-tinted inner glow
+            // Warm tint
             LinearGradient(
                 colors: [
-                    GlassBackground.claudeTerracotta.opacity(0.06),
+                    GlassBackground.claudeTerracotta.opacity(0.04),
                     Color.clear,
-                    GlassBackground.claudeSand.opacity(0.04)
+                    GlassBackground.claudeSand.opacity(0.03)
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
 
-            // Thin warm top edge highlight
+            // Top edge rim light
             VStack {
                 LinearGradient(
                     colors: [
-                        GlassBackground.claudeCream.opacity(0.25),
-                        GlassBackground.claudeTerracotta.opacity(0.08),
-                        Color.clear
+                        Color.white.opacity(0.35),
+                        Color.white.opacity(0.1),
+                        Color.white.opacity(0.02)
                     ],
                     startPoint: .leading,
                     endPoint: .trailing
                 )
-                .frame(height: 0.5)
+                .frame(height: 1)
                 Spacer()
+            }
+
+            // Left edge rim
+            HStack {
+                LinearGradient(
+                    colors: [Color.white.opacity(0.15), .clear],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(width: 1)
+                Spacer()
+            }
+
+            // Bottom inner shadow for depth
+            VStack {
+                Spacer()
+                LinearGradient(
+                    colors: [.clear, Color.black.opacity(0.04)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: 40)
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [
+                            Color.white.opacity(0.25),
+                            Color.white.opacity(0.08),
+                            Color.white.opacity(0.03),
+                            Color.white.opacity(0.08)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 0.5
+                )
+        )
     }
 }
 
@@ -384,7 +427,7 @@ struct AppLogoView: View {
 struct GlassBlurView: NSViewRepresentable {
     func makeNSView(context: Context) -> NSVisualEffectView {
         let view = NSVisualEffectView()
-        view.material = .hudWindow
+        view.material = .popover
         view.blendingMode = .behindWindow
         view.state = .active
         view.wantsLayer = true

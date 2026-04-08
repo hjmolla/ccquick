@@ -53,6 +53,62 @@ final class SessionTracker: ObservableObject, @unchecked Sendable {
         sessions.count
     }
 
+    func terminateSession(_ session: ClaudeSession) {
+        let tty = session.tty
+        let terminal = session.terminal
+
+        // Kill the claude process
+        kill(session.id, SIGTERM)
+
+        // Close the terminal tab/window for this TTY
+        DispatchQueue.global(qos: .userInitiated).async {
+            let script: String
+            switch terminal {
+            case .terminal:
+                script = """
+                tell application "Terminal"
+                    repeat with w in windows
+                        repeat with t in tabs of w
+                            if tty of t is "/dev/\(tty)" then
+                                close w
+                                return
+                            end if
+                        end repeat
+                    end repeat
+                end tell
+                """
+            case .iterm2:
+                script = """
+                tell application "iTerm2"
+                    repeat with w in windows
+                        repeat with t in tabs of w
+                            repeat with s in sessions of t
+                                if tty of s is "/dev/\(tty)" then
+                                    close t
+                                    return
+                                end if
+                            end repeat
+                        end repeat
+                    end repeat
+                end tell
+                """
+            default:
+                script = ""
+            }
+
+            if !script.isEmpty {
+                var error: NSDictionary?
+                NSAppleScript(source: script)?.executeAndReturnError(&error)
+            }
+        }
+
+        // Remove from list immediately
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            self?.sessions.removeAll { $0.id == session.id }
+            self?.scan()
+        }
+    }
+
     func scan() {
         DispatchQueue.global(qos: .utility).async { [weak self] in
             guard let self = self else { return }

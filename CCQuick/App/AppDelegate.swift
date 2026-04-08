@@ -66,8 +66,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unche
         window.level = .floating
         window.ignoresMouseEvents = true
         window.isReleasedWhenClosed = false
-        window.contentView = hostingView
         window.setFrame(screen.frame, display: true)
+
+        // Fullscreen blur — same as launcher backdrop but stronger
+        let fullFrame = NSRect(origin: .zero, size: screen.frame.size)
+
+        let blur = NSVisualEffectView(frame: fullFrame)
+        blur.material = .fullScreenUI
+        blur.blendingMode = .behindWindow
+        blur.state = .active
+        blur.alphaValue = 0.7
+        blur.autoresizingMask = [.width, .height]
+
+        let container = NSView(frame: fullFrame)
+        container.autoresizingMask = [.width, .height]
+        container.addSubview(blur)
+
+        hostingView.frame = fullFrame
+        hostingView.autoresizingMask = [.width, .height]
+        container.addSubview(hostingView)
+
+        window.contentView = container
 
         window.alphaValue = 0
         window.orderFront(nil)
