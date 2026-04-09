@@ -121,6 +121,7 @@ struct LauncherView: View {
                                     DirectoryRowView(
                                         project: project,
                                         isSelected: globalIdx == viewModel.selectedIndex,
+                                        searchText: viewModel.searchText,
                                         onTogglePin: { viewModel.togglePin(project) },
                                         onChangeIcon: { viewModel.showIconPicker(for: project) },
                                         onLaunchWith: { target in viewModel.openProject(project, with: target) }

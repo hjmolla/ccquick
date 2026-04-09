@@ -12,6 +12,7 @@ struct SessionRowView: View {
     @State private var isPulsing: Bool = false
     @State private var showTerminateConfirm: Bool = false
     @State private var xHovered: Bool = false
+    @State private var conversationSummary: ConversationSummary? = nil
 
     var body: some View {
         if showTerminateConfirm {
@@ -110,10 +111,19 @@ struct SessionRowView: View {
                         )
                 }
 
-                Text(abbreviatedPath(session.directory))
-                    .font(.system(size: 10.5, design: .monospaced))
-                    .foregroundColor(.secondary)
-                    .lineLimit(1)
+                if let summary = conversationSummary, isHovered || isSelected {
+                    Text("\"\(summary.lastMessage)\"")
+                        .font(.system(size: 10, design: .rounded))
+                        .foregroundColor(.secondary.opacity(0.6))
+                        .lineLimit(1)
+                        .italic()
+                        .transition(.opacity)
+                } else {
+                    Text(abbreviatedPath(session.directory))
+                        .font(.system(size: 10.5, design: .monospaced))
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                }
             }
 
             Spacer()
@@ -169,6 +179,12 @@ struct SessionRowView: View {
         .onAppear {
             withAnimation(.easeInOut(duration: 2.0).repeatForever(autoreverses: false)) {
                 isPulsing = true
+            }
+            DispatchQueue.global(qos: .utility).async {
+                let summary = ConversationHistoryService.shared.getSummary(for: session.directory)
+                DispatchQueue.main.async {
+                    conversationSummary = summary
+                }
             }
         }
 

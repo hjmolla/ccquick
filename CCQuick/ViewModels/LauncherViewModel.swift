@@ -3,18 +3,40 @@ import Cocoa
 import SwiftUI
 import Combine
 
+enum SortOrder: String, CaseIterable {
+    case recent = "Recent"
+    case name = "Name"
+    case frequency = "Frequency"
+
+    var icon: String {
+        switch self {
+        case .recent: return "clock"
+        case .name: return "textformat.abc"
+        case .frequency: return "flame"
+        }
+    }
+
+    func next() -> SortOrder {
+        let all = SortOrder.allCases
+        let idx = all.firstIndex(of: self)!
+        return all[(idx + 1) % all.count]
+    }
+}
+
 final class LauncherViewModel: ObservableObject, @unchecked Sendable {
     @Published var searchText: String = ""
     @Published var selectedIndex: Int = 0
     @Published var isScanning: Bool = false
     @Published var iconPickerProject: Project? = nil
     @Published var panelVisible: Bool = false
+    @Published var sortOrder: SortOrder = .recent
 
     let store: ProjectStore
     let sessionTracker: SessionTracker
     private let terminalService = TerminalLaunchService.shared
     private let discoveryService = GitDiscoveryService()
     private var sessionCancellable: AnyCancellable?
+    private var storeCancellable: AnyCancellable?
 
     var onDismiss: (() -> Void)?
 
@@ -27,13 +49,30 @@ final class LauncherViewModel: ObservableObject, @unchecked Sendable {
                 self?.objectWillChange.send()
             }
         }
+        // Re-publish store changes (pin, icon, etc)
+        storeCancellable = store.objectWillChange.sink { [weak self] _ in
+            DispatchQueue.main.async {
+                self?.objectWillChange.send()
+            }
+        }
+    }
+
+    private func applySorting(_ projects: [Project]) -> [Project] {
+        switch sortOrder {
+        case .recent:
+            return projects.sorted { ($0.lastOpened ?? .distantPast) > ($1.lastOpened ?? .distantPast) }
+        case .name:
+            return projects.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+        case .frequency:
+            return projects.sorted { $0.openCount > $1.openCount }
+        }
     }
 
     /// All projects in display order: pinned, recent, discovered — filtered by search
     var allFilteredProjects: [Project] {
-        let pinned = store.pinnedProjects
-        let recent = store.recentProjects
-        let discovered = store.discoveredProjects
+        let pinned = applySorting(store.pinnedProjects)
+        let recent = applySorting(store.recentProjects)
+        let discovered = applySorting(store.discoveredProjects)
         let all = pinned + recent + discovered
 
         if searchText.isEmpty { return all }
@@ -52,13 +91,17 @@ final class LauncherViewModel: ObservableObject, @unchecked Sendable {
             return results.isEmpty ? [] : [("Results", results)]
         }
         var s: [(String, [Project])] = []
-        let pinned = store.pinnedProjects
-        let recent = store.recentProjects
-        let discovered = store.discoveredProjects
+        let pinned = applySorting(store.pinnedProjects)
+        let recent = applySorting(store.recentProjects)
+        let discovered = applySorting(store.discoveredProjects)
         if !pinned.isEmpty { s.append(("Pinned", pinned)) }
         if !recent.isEmpty { s.append(("Recent", recent)) }
         if !discovered.isEmpty { s.append(("Discovered", discovered)) }
         return s
+    }
+
+    func cycleSortOrder() {
+        sortOrder = sortOrder.next()
     }
 
     func openProject(_ project: Project) {

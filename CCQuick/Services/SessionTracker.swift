@@ -36,17 +36,39 @@ final class SessionTracker: ObservableObject, @unchecked Sendable {
     private var timer: Timer?
     private var knownStartTimes: [Int32: Date] = [:]
     private var highlightOverlay: NSWindow?
+    private var launcherVisible: Bool = false
+    private let activeInterval: TimeInterval = 5.0
+    private let backgroundInterval: TimeInterval = 10.0
 
     func start() {
         scan()
-        timer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
-            self?.scan()
-        }
+        scheduleTimer()
     }
 
     func stop() {
         timer?.invalidate()
         timer = nil
+    }
+
+    /// Call when the launcher panel becomes visible
+    func launcherDidShow() {
+        launcherVisible = true
+        scan()  // immediate scan
+        scheduleTimer()  // switch to faster interval
+    }
+
+    /// Call when the launcher panel is hidden
+    func launcherDidHide() {
+        launcherVisible = false
+        scheduleTimer()  // switch to slower interval
+    }
+
+    private func scheduleTimer() {
+        timer?.invalidate()
+        let interval = launcherVisible ? activeInterval : backgroundInterval
+        timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
+            self?.scan()
+        }
     }
 
     var activeCount: Int {

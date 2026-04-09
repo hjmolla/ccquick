@@ -37,8 +37,9 @@ final class ProjectStore: ObservableObject, @unchecked Sendable {
     func recordOpen(path: String) {
         if let idx = projects.firstIndex(where: { $0.path == path }) {
             projects[idx].lastOpened = Date()
+            projects[idx].openCount += 1
         } else {
-            projects.append(Project(path: path, lastOpened: Date()))
+            projects.append(Project(path: path, lastOpened: Date(), openCount: 1))
         }
         save()
     }
