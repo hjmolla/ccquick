@@ -48,10 +48,19 @@ No more `cd`-ing around in terminals. Just press **Cmd + Shift + C**, pick a pro
 
 ## Install
 
-### Homebrew
+### Homebrew (recommended)
 
 ```bash
+brew tap hjmolla/tap
 brew install --cask hjmolla/tap/ccquick
+```
+
+This installs CCQuick to `/Applications` and automatically removes the Gatekeeper quarantine flag.
+
+To update later:
+
+```bash
+brew upgrade --cask ccquick
 ```
 
 ### Download

@@ -5,13 +5,16 @@ private let claudeTerracotta = Color(red: 0.85, green: 0.47, blue: 0.34)
 struct DirectoryRowView: View {
     let project: Project
     let isSelected: Bool
+    var searchText: String = ""
     var onTogglePin: (() -> Void)? = nil
     var onChangeIcon: (() -> Void)? = nil
     var onLaunchWith: ((LaunchTarget) -> Void)? = nil
     @State private var isHovered: Bool = false
     @State private var iconHovered: Bool = false
+    @State private var pinHovered: Bool = false
     @State private var conversationSummary: ConversationSummary? = nil
     @State private var showLaunchMenu: Bool = false
+    @State private var gitStatus: GitStatus? = nil
 
     var body: some View {
         HStack(spacing: 12) {
@@ -55,7 +58,7 @@ struct DirectoryRowView: View {
             .onHover { h in iconHovered = h }
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(project.name)
+                highlightedName(project.name, query: searchText)
                     .font(.system(size: 13, weight: .regular, design: .serif))
                     .foregroundColor(isSelected ? .primary : .primary)
                     .lineLimit(1)
@@ -72,6 +75,25 @@ struct DirectoryRowView: View {
                         .font(.system(size: 10.5, design: .monospaced))
                         .foregroundColor(isSelected ? .secondary.opacity(0.7) : .secondary)
                         .lineLimit(1)
+                }
+
+                if let git = gitStatus, (isHovered || isSelected) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "arrow.triangle.branch")
+                            .font(.system(size: 8))
+                        Text(git.branch)
+                            .font(.system(size: 10, weight: .medium, design: .monospaced))
+                        if git.changedFiles > 0 {
+                            Text("\u{2022}")
+                                .font(.system(size: 8))
+                                .foregroundColor(.secondary.opacity(0.5))
+                            Text("\(git.changedFiles) change\(git.changedFiles == 1 ? "" : "s")")
+                                .font(.system(size: 10, design: .rounded))
+                                .foregroundColor(claudeTerracotta)
+                        }
+                    }
+                    .foregroundColor(.secondary.opacity(0.7))
+                    .transition(.opacity)
                 }
             }
 
@@ -114,16 +136,20 @@ struct DirectoryRowView: View {
                     Image(systemName: project.isPinned ? "pin.fill" : "pin")
                         .font(.system(size: 10, weight: .medium))
                         .foregroundColor(
-                            isSelected ? .secondary.opacity(0.8)
+                            pinHovered ? claudeTerracotta
                             : (project.isPinned ? claudeTerracotta : .secondary)
                         )
                         .frame(width: 22, height: 22)
                         .background(
                             Circle()
-                                .fill(Color.primary.opacity(isHovered && !isSelected ? 0.04 : 0))
+                                .fill(pinHovered ? claudeTerracotta.opacity(0.1) : Color.primary.opacity(0.04))
                         )
+                        .scaleEffect(pinHovered ? 1.1 : 1.0)
                 }
                 .buttonStyle(.borderless)
+                .onHover { h in
+                    withAnimation(.easeInOut(duration: 0.12)) { pinHovered = h }
+                }
                 .transition(.opacity.combined(with: .scale(scale: 0.8)))
             }
         }
@@ -159,7 +185,44 @@ struct DirectoryRowView: View {
                     conversationSummary = summary
                 }
             }
+            GitStatusService.shared.getStatus(for: project.path) { status in
+                gitStatus = status
+            }
         }
+    }
+
+    /// Highlights fuzzy-matched characters in the project name using the Claude terracotta color
+    private func highlightedName(_ name: String, query: String) -> Text {
+        guard !query.isEmpty else {
+            return Text(name)
+        }
+
+        let lowerName = name.lowercased()
+        let lowerQuery = query.lowercased()
+
+        // Find fuzzy match indices
+        var matchIndices: Set<String.Index> = []
+        var searchIdx = lowerName.startIndex
+        for ch in lowerQuery {
+            if let found = lowerName[searchIdx...].firstIndex(of: ch) {
+                // Map back to original name index
+                let offset = lowerName.distance(from: lowerName.startIndex, to: found)
+                let originalIdx = name.index(name.startIndex, offsetBy: offset)
+                matchIndices.insert(originalIdx)
+                searchIdx = lowerName.index(after: found)
+            }
+        }
+
+        var result = Text("")
+        for idx in name.indices {
+            let char = String(name[idx])
+            if matchIndices.contains(idx) {
+                result = result + Text(char).foregroundColor(claudeTerracotta).bold()
+            } else {
+                result = result + Text(char)
+            }
+        }
+        return result
     }
 
     private func abbreviatedPath(_ path: String) -> String {
