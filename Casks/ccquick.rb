@@ -1,6 +1,6 @@
 cask "ccquick" do
-  version "1.0.0"
-  sha256 "917307c4f9b01a406c8a4ea8dc9864063e14be45593eaa57f79f242efdd79ff5"
+  version "1.0.1"
+  sha256 "b6bf4d0bac857d200575f91bbf808132e688e6a2dc59e1e392436e237388b364"
 
   url "https://github.com/hyojoongit/ccquick/releases/download/v#{version}/CCQuick-#{version}.dmg"
   name "CCQuick"
