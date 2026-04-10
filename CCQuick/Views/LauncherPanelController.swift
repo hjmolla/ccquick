@@ -208,7 +208,6 @@ final class LauncherPanelController: @unchecked Sendable {
     private var monitor: Any?
     private var clickMonitor: Any?
     private var localClickMonitor: Any?
-    private var mascotWindow: NSWindow?
 
     init(viewModel: LauncherViewModel) {
         self.viewModel = viewModel
@@ -251,9 +250,6 @@ final class LauncherPanelController: @unchecked Sendable {
         }
 
         dimmingWindow?.startAurora()
-
-        // Mascot peeking over the top
-        showMascot(panelFrame: NSRect(x: x, y: y, width: panelWidth, height: panelHeight))
 
         // Notify session tracker for faster polling
         viewModel.sessionTracker.launcherDidShow()
@@ -323,12 +319,10 @@ final class LauncherPanelController: @unchecked Sendable {
             ctx.timingFunction = CAMediaTimingFunction(name: .easeIn)
             panel.animator().alphaValue = 0
             self.dimmingWindow?.animator().alphaValue = 0
-            self.mascotWindow?.animator().alphaValue = 0
         }, completionHandler: {
             panel.orderOut(nil)
             self.dimmingWindow?.stopAurora()
             self.dimmingWindow?.orderOut(nil)
-            self.mascotWindow?.orderOut(nil)
         })
     }
 
@@ -337,52 +331,6 @@ final class LauncherPanelController: @unchecked Sendable {
             hidePanel()
         } else {
             showPanel()
-        }
-    }
-
-    private func showMascot(panelFrame: NSRect) {
-        let mascotSize: CGFloat = 40
-        let peekAmount: CGFloat = 22 // how much shows above the panel
-
-        // Position: left of center, half hidden behind the panel top edge
-        let mascotX = panelFrame.minX + panelFrame.width * 0.3 - mascotSize / 2
-        let mascotY = panelFrame.maxY - mascotSize / 2
-
-        if mascotWindow == nil {
-            let window = NSWindow(
-                contentRect: NSRect(x: 0, y: 0, width: mascotSize, height: mascotSize),
-                styleMask: .borderless,
-                backing: .buffered,
-                defer: false
-            )
-            window.backgroundColor = .clear
-            window.isOpaque = false
-            window.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.floatingWindow)) + 2)
-            window.ignoresMouseEvents = true
-            window.isReleasedWhenClosed = false
-
-            if let logoPath = Bundle.main.path(forResource: "ClaudeCodeLogo", ofType: "png"),
-               let image = NSImage(contentsOfFile: logoPath) {
-                let imageView = NSImageView(frame: NSRect(x: 0, y: 0, width: mascotSize, height: mascotSize))
-                imageView.image = image
-                imageView.imageScaling = .scaleProportionallyUpOrDown
-                window.contentView = imageView
-            }
-
-            mascotWindow = window
-        }
-
-        mascotWindow?.setFrame(NSRect(x: mascotX, y: mascotY, width: mascotSize, height: mascotSize), display: true)
-        mascotWindow?.alphaValue = 0
-        mascotWindow?.orderFront(nil)
-
-        // Pop in with a slight delay and bounce
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-            NSAnimationContext.runAnimationGroup { ctx in
-                ctx.duration = 0.3
-                ctx.timingFunction = CAMediaTimingFunction(name: .easeOut)
-                self.mascotWindow?.animator().alphaValue = 1
-            }
         }
     }
 
