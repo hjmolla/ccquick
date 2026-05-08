@@ -49,14 +49,7 @@ No more `cd`, `ls`-ing around in terminals. Just press **Cmd + Shift + C**, pick
 ## Install
 
 ```bash
-brew tap hyojoongit/tap
 brew install --cask hyojoongit/tap/ccquick
-```
-
-To update:
-
-```bash
-brew upgrade --cask ccquick
 ```
 
 ### Build from source
