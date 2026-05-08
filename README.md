@@ -24,7 +24,7 @@
 
 CCQuick lives in your menu bar and lets you launch [Claude Code](https://docs.anthropic.com/en/docs/claude-code) in any project directory — instantly.
 
-No more `cd`-ing around in terminals. Just press **Cmd + Shift + C**, pick a project, done.
+No more `cd`, `ls`-ing around in terminals. Just press **Cmd + Shift + C**, pick a project, done.
 
 ## Features
 
