@@ -262,13 +262,15 @@ final class LauncherPanelController: @unchecked Sendable {
         // Local monitor catches clicks on the dimming window (which is part of our app)
         localClickMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] event in
             guard let self = self, let panel = self.panel, panel.isVisible else { return event }
-            // If the click is NOT inside the panel, dismiss
             let clickWindow = event.window
-            if clickWindow !== panel {
-                self.hidePanel()
-                return nil
-            }
-            return event
+            // Allow clicks inside the panel itself
+            if clickWindow === panel { return event }
+            // Allow clicks inside child windows (e.g. popovers, menus)
+            if let clickWin = clickWindow, clickWin.parent === panel { return event }
+            // Allow clicks inside popover windows (_NSPopoverWindow)
+            if let clickWin = clickWindow, String(describing: type(of: clickWin)).contains("Popover") { return event }
+            self.hidePanel()
+            return nil
         }
 
         // Keyboard navigation
