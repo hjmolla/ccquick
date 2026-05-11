@@ -20,11 +20,19 @@
 
 ---
 
+<p align="center">
+  <img src="demo/ccq_search.gif" width="600" alt="CCQuick Demo - Search" />
+</p>
+
 ## What is CCQuick?
 
 CCQuick lives in your menu bar and lets you launch [Claude Code](https://docs.anthropic.com/en/docs/claude-code) in any project directory — instantly.
 
 No more `cd`, `ls`-ing around in terminals. Just press **Cmd + Shift + C**, pick a project, done.
+
+<p align="center">
+  <img src="demo/ccq_focus.gif" width="600" alt="CCQuick Demo - Focus" />
+</p>
 
 ## Features
 
